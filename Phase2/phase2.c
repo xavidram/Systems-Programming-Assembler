@@ -144,19 +144,21 @@ void parseFile(char * fileName){
             }
             else if(!strcmp(opcode,"WORD")){
                 LOCCTR = LOCCTR + 3;
+                 mnemonicVal = 0;
             }
             else if(!strcmp(opcode,"RESW")){
                 val = (int)strtoul(operand,NULL,16); val = val * 3;
                 LOCCTR = LOCCTR + val;
+                mnemonicVal = 0;
             }
             else if(!strcmp(opcode,"RESB")){
                 val = (int)strtoul(operand,NULL,10);
                 LOCCTR = LOCCTR + val;
+                mnemonicVal = 0;
             }
             else if(!strcmp(opcode,"BYTE")){
+                mnemonicVal = 0;
                 int len = length(operand); int X = 2; int SIZE = 0;
-
-                printf("%d\n",(operand[0] == 'C') && (operand[1] == '\''));
 
                 if( (operand[0] == 'C') && (operand[1] == '\'')){
                     while(X < len - 1){
@@ -178,6 +180,7 @@ void parseFile(char * fileName){
 
                 LOCCTR = LOCCTR + SIZE;
             }else{
+                mnemonicVal = 0;
                 if(strcmp(opcode,"RSUB")){
                     errors[errorCount] = 5; errorCount++; totalErrors++;
                 }
@@ -190,23 +193,34 @@ void parseFile(char * fileName){
             if(sCount >= MSYMBOL){
                 errors[errorCount] = 8; errorCount++; totalErrors++;
             }
-        }//End if not comment/
-        //Reset the data
 
-        //write to file
+        //\\//\\write to file//\\//\\
         fprintf(fw,"%x \n",LOCCTR);
+            if(mnemonicVal != 0){
+                fprintf(fw,"\n", mnemonicVal);
+            }else{
+                fprintf(fw,"\n");
+            }
         fprintf(fw,"%s \n",operand);
         fprintIntArray(errors,errorCount,fw);
 
-
         printf("%x \n",LOCCTR);
+            if(mnemonicVal != 0){
+                printf("%x\n", mnemonicVal);
+            }else{
+                printf("\n");
+            }
         printf("%s \n",operand);
         printIntArray(errors,errorCount,fw);
+        //\\//\\write to file//\\//\\
 
         if(!strcmp(opcode,"END")){
             break;
         }
 
+        }//End if not comment/
+        
+        //Reset the data
         memset(line,'\0',127);
         memset(errors,0,sizeof(errors));
         errorCount=0;
@@ -217,7 +231,6 @@ void parseFile(char * fileName){
 
     fprintf(fw,"%s\n",line);
     PROGRAM_LENGTH = LOCCTR;
-    printf("%d\n",totalErrors);
 
     //this is just to print table so we can see it on the intermediate file for now. Will change it later. 
     printf("\nThis is the Symbol Table:\n");
