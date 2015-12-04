@@ -1,0 +1,150 @@
+/* 
+ * File:   main.c
+ * Author: xavid.ramirez01
+ *
+ * Created on September 18, 2015, 1:13 PM
+ */
+#include "prototypes.h"
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+ struct token{
+    const char *string;
+    int length;
+ };
+
+/*int main the function that started it all*/
+int main(int argc, char** argv) {
+
+    system("clear");
+    printf("Welcome to the FlippinSweet Compiler\n");   //welcome display
+    int lastwordFlag = 1;
+
+    char * command = malloc(128);                       //allocate space
+
+    do{     
+            if(lastwordFlag == 1) 
+                printf("command>");                      //prompt to put in a command
+            memset(command,'\0',127);                   //set command to all null to remove trash
+            command[0] = '\0';                          //saftey measure that is not needed but oh well
+            lastwordFlag = parseStream(command);                       //go parse the stream and put it into command
+        //checkCommand(command,userInput);
+            
+    }while(compareCommand(command,"exit") != 0);        // exit case, only reason why command is out here in main
+    
+    return (EXIT_SUCCESS);
+}
+
+/*---------PHASE 2 --------------------------------------*/
+void parseFile(char * fileName){
+
+    FILE *fr,*fw;
+    SymbolTable SYMTAB[500];
+    char * line = malloc(128);
+    char * token;
+    //line
+    char *label,*opcode,*operand,*programName;
+    char *space = " ";
+    char LOCCTR[7];
+    int count = 0;
+    int LABEL_MAX = 7;
+    int errors[10];
+
+    
+    //defining output file 
+
+    int START_ADDRESS, NEXT_LOCATION;
+
+    //opening the file
+    fr = fopen(fileName,"r");
+
+    //if the file is invalid
+    if(fr == NULL){
+        fprintf(stderr,"Can't open the input file.");
+        exit(1);
+    }
+
+    fw = fopen("intermediate.txt","w");
+    //if output file is not there
+    if(fw == NULL){
+        fprintf(stderr, "Output file not located.");
+        exit(1);
+    }
+
+    //reset line
+    memset(line,'\0',127);
+    line[0] = '\0'; 
+
+    //figure out how to stop strtok when nothing in operand area
+
+    //get first line
+    fgets(line,127,fr); //get line from filereader, might change value to bigger value for line
+        if(line[0] == '.'){
+            //this is a comment line;
+        }
+        else if(isspace(line[0])){
+            opcode = strtok(line,space);
+            operand = strtok(NULL,space);
+            trimNewLine(opcode);trimNewLine(operand);
+
+            //check if start is found if not put the error in the array of errors
+            if(strcmp(opcode,"START")){
+                strcpy(LOCCTR,operand);
+                printf("start found");
+            }
+            else{
+                printf("start not found");
+                strcpy(LOCCTR,operand);
+                //write error code [errorvalue , errorvlue, etc];
+            }
+
+
+            printf("%s\n",opcode);printf("%s\n",operand);
+		fprintf(fw,"%s\n",opcode);fprintf(fw,"%s\n",operand);
+        }
+        else{
+            programName = strtok(line,space);
+            opcode = strtok(NULL,space);
+            operand = strtok(NULL,space);
+            trimNewLine(programName);trimNewLine(opcode);trimNewLine(operand);
+            printf("%s\n",programName);printf("%s\n",opcode);printf("%s\n",operand);
+	    fprintf(fw,"%s\n",programName);fprintf(fw,"%s\n",opcode);fprintf(fw,"%s\n",operand);
+        }
+
+
+
+    //reset line
+
+    do{
+        memset(line,'\0',127);
+        line[0] = '\0'; 
+        fgets(line,127,fr);
+        if(line[0] == '.'){
+            //this is a comment line;
+        }
+        else if(isspace(line[0])){
+            opcode = strtok(line,space);
+            operand = strtok(NULL,space);
+            trimNewLine(opcode);trimNewLine(operand);
+            printf("%s\n",opcode);printf("%s\n",operand);
+            count = count + 3;
+		fprintf(fw,"%s\n",opcode);fprintf(fw,"%s\n",operand);
+        }
+        else{
+            label = strtok(line,space);
+            opcode = strtok(NULL,space);
+            operand = strtok(NULL,space);
+            trimNewLine(label);trimNewLine(opcode);trimNewLine(operand);
+            printf("%s\n",label);printf("%s\n",opcode);printf("%s\n",operand);
+		fprintf(fw,"%s\n",label);fprintf(fw,"%s\n",opcode);fprintf(fw,"%s\n",operand);
+        }
+
+    }while(!feof(fr));
+
+fw.close();
+
+
+
+}
+
