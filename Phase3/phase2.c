@@ -25,29 +25,6 @@ int symbolExists(SymbolTable ** SYMTAB, char * label, int sCount){
     return 0;
 }
 
-void readIntermediateFile(FILE* Ifr,char* readLabel, char* readOpcode, char* readMnemonicVal, char* readLineAddress, char* readOperand, char* readErrors){
-    memset(readMnemonicVal,'\0',10);
-    memset(readLineAddress,'\0',10);
-    memset(readOperand,'\0',12);    
-    memset(readErrors,'\0',10); 
-    memset(readLabel,'\0',10);
-    memset(readOpcode,'\0',10);
-
-    fgets(readLabel,9,Ifr);
-    fgets(readOpcode,9,Ifr);
-    fgets(readMnemonicVal,9,Ifr);
-    fgets(readLineAddress,9,Ifr);
-    fgets(readOperand,11,Ifr);
-    fgets(readErrors,9,Ifr);
-
-    trimNewLine(readMnemonicVal);
-    trimNewLine(readLineAddress); 
-    trimNewLine(readOperand);
-    trimNewLine(readErrors);
-    trimNewLine(readLabel);
-    trimNewLine(readOpcode);
-}
-
 /*---------PHASE 2 --------------------------------------*/
 void parseFile(char * fileName){
 
@@ -123,8 +100,8 @@ void parseFile(char * fileName){
         fprintf(fw, "%s\n",programName);
         fprintf(fw, "%s\n", opcode);
         fprintf(fw, "0\n");
-        fprintf(fw, "%x \n",LOCCTR);
-        fprintf(fw, "%s \n",operand);
+        fprintf(fw, "%x\n",LOCCTR);
+        fprintf(fw, "%s\n",operand);
         fprintIntArray(errors,errorCount,fw);
 
 
@@ -134,7 +111,6 @@ void parseFile(char * fileName){
     memset(errors,0,sizeof(errors));
     errorCount=0;
     fgets(line,127,fr);                                                         //getLine
-    printf("HERE\n");
     
 
 
@@ -271,19 +247,18 @@ void parseFile(char * fileName){
 
     fprintf(fw,"%s\n",line);
     PROGRAM_LENGTH = LOCCTR;
-    printf("%d\n",totalErrors);
 
     //this is just to print table so we can see it on the intermediate file for now. Will change it later. 
-    printf("\nThis is the Symbol Table:\n");
+   // printf("\nThis is the Symbol Table:\n");
     int p;
     for(p = 0; p < sCount; p++){
-        printf("%s ",SYMTAB[p]->label);printf("%x\n",SYMTAB[p]->LOCCTR);
+        //printf("%s ",SYMTAB[p]->label);printf("%x\n",SYMTAB[p]->LOCCTR);
         fprintf(fw,"%s ",SYMTAB[p]->label);fprintf(fw,"%x\n",SYMTAB[p]->LOCCTR);
     }
     //close so file gets written
     fclose(fr); fclose(fw);
 
-    printf("%x\n",PROGRAM_LENGTH);
+    //printf("%x\n",PROGRAM_LENGTH);
 
     //Pass 2
 
@@ -326,8 +301,12 @@ void parseFile(char * fileName){
     memset(frontobjectLine,'\0',70);
     char * check; check = malloc(sizeof(char*)*32); memset(check,'\0',32);
     char* Asc; Asc = malloc(sizeof(char*)*4); memset(Asc,'\0',4);
-     unsigned deci;
+     unsigned deci;unsigned startAdd = 0;
 
+
+    
+
+     int first = 1;
     int lineNumber;
     for(lineNumber = 1; !feof(Ifr); lineNumber++){
         
@@ -337,7 +316,7 @@ void parseFile(char * fileName){
         fgets(line, 127, Ifr);
         trimNewLine(line);
 
-        printf("%s\n",line);
+        //printf("%s\n",line);
 
 
         if(line[0] != '.'){
@@ -347,7 +326,7 @@ void parseFile(char * fileName){
                 
                 if(!strcmp(opcode,"RSUB")){                                             //but check if opcoe is rsub, then it doesnt need a operand
                     strcpy(operand,"");                                                 //so set operand to a blank and it's neonic val to 0
-                    mnemonicVal = 0;                                                    //mnemonic val 0.
+                    mnemonicVal = 00;                                                    //mnemonic val 0.
                 }else{
                     operand = strtok(NULL," ");trimNewLine(operand);                  //otherwise tokenize operand and trim it.
                 }
@@ -356,9 +335,7 @@ void parseFile(char * fileName){
                 trimNewLine(label);trimNewLine(opcode);trimNewLine(operand);
             }
 
-            if(!strcmp(opcode,"END")){
-                break;
-            }
+            
 
             memset(readMnemonicVal,'\0',10); memset(readLineAddress,'\0',10);
             memset(readOperand,'\0',12);     memset(readErrors,'\0',10); memset(readLabel,'\0',10);
@@ -372,19 +349,31 @@ void parseFile(char * fileName){
             trimNewLine(readMnemonicVal);trimNewLine(readLineAddress); trimNewLine(readOperand);
             trimNewLine(readErrors);trimNewLine(readLabel);trimNewLine(readOpcode);
 
+            
+
              //if it is the first line and opcode is start
-            if(lineNumber == 1 && !strcmp(opcode,"START")){
+            if( !strcmp(opcode,"START")){
 
                 writeListingLine(Lfw,readLineAddress,readLabel,readOpcode,readOperand," ", 0);
                 //write object header
                 fprintf(Ofw,"H");fprintf(Ofw,"%s",readLabel);fprintf(Ofw,"  ");
                 val = (int)strtoul(readLineAddress,NULL,16);
                 fprintf(Ofw,"%06x",val);
-
+                startAdd = val;
                 //get difference
                 fprintf(Ofw,"%06x\n",(PROGRAM_LENGTH - val));
 
+
+
             }else{
+                if(instruction == 1 ){
+                        strcat(frontobjectLine,"T");
+                        sprintf(stringConvert,"00%s",readLineAddress);
+                        strcat(frontobjectLine,stringConvert);
+                        instruction = 1;
+                }   
+
+                   
                 //for every other line
                 if(isMnemonic(readOpcode)){
                     if(readOperand[0] != ' '){
@@ -406,39 +395,69 @@ void parseFile(char * fileName){
                         operandAddress = 0;
                     }
                     //assemble object line
-                    if(instruction == 1){
-                        strcat(frontobjectLine,"T");
-                        sprintf(stringConvert,"00%s",readLineAddress);
-                        strcat(frontobjectLine,stringConvert);
-                        printf("%x\n");
-                    }
+                        val = symbolLocation(SYMTAB,readOperand,sCount);
+                        deci = (int)strtoul(readMnemonicVal,NULL,16);
+                        sprintf(stringConvert,"%02x",deci);
+                        strcat(instructionLines,stringConvert);  
+                        sprintf(stringConvert,"%04x",val);
+                        strcat(instructionLines,stringConvert);
+                        instruction++;
+                        lineSize += 0x06;  
 
                 }else if(!strcmp(readOpcode,"BYTE")){
+
+                    memset(check,'\0',32);
                     if(readOperand[0] == 'C' && readOperand[1] == '\''){
                         int k; 
                         for(k = 2;readOperand[k] != '\'';k++){
                             sprintf(Asc,"%02x",readOperand[k]);
                             strcat(check,Asc);
                         }
-                        printf("%s\n",check);
+                        lineSize += 0x06; 
                     }else if(readOperand[0] == 'X' && readOperand[1] == '\''){
-                        int l;
+                        int l;int i = 0;
                         char * Asc[2];Asc[1] = '\0';
                         for(l=2;readOperand[l] != '\'';l++){
+                            i++;
                             Asc[0] = readOperand[l];
                             strcat(check,Asc);
                         }
+                        lineSize += i; 
                     }else{
                         //error here
                     }
-                }else if(!strcmp(readOpcode,"WORD")){
-                   deci = (int)strtoul(readOperand,NULL,16);
 
+                    strcat(instructionLines,check);
+                    instruction++;
+                     
+
+                }else if(!strcmp(readOpcode,"WORD")){
+                    deci = (int)strtoul(readOperand,NULL,16);
+                    sprintf(stringConvert,"%06x",deci);
+                    strcat(instructionLines,stringConvert);
+                    instruction++;
+                    lineSize += 0x06;  
+                }else if(!strcmp(readOpcode,"RSUB")){
+                        sprintf(stringConvert,"%06x",val);
+                        strcat(instructionLines,"4c");
+                        strcat(instructionLines,"0000");
+                        instruction++;
+                    lineSize += 0x06;  
+                }else if(!strcmp(readOperand,"BUFFER,X")){
+                        val = symbolLocation(SYMTAB,readOperand,sCount);
+                        sprintf(stringConvert,"%x",val);
+                        stringConvert[0] = stringConvert[0] + 8;
+                        strcat(instructionLines,readMnemonicVal);
+                        strcat(instructionLines,stringConvert);
+                        instruction++;
+                    lineSize += 0x06;  
+                }else if(!strcmp(readOpcode,"RESW") || !strcmp(readOpcode,"RESB")){
+                        strcat(instructionLines,"      ");
+                        instruction++;
+                     
                 }
 
-                 val = symbolLocation(SYMTAB,readOperand,sCount);
 
-                //if object code will not fit into current text record
                 if(instruction == 11){
                     sprintf(stringConvert,"%x",(lineSize/2));
                     strcat(frontobjectLine,stringConvert);
@@ -446,45 +465,32 @@ void parseFile(char * fileName){
                     printf("%s\n",frontobjectLine);
                     fprintf(Ofw, "%s\n",frontobjectLine);
                     lineSize = 0;
-                    instruction = 0;
+                    instruction = 1;
                     memset(frontobjectLine,'\0',70);
                     memset(instructionLines,'\0',70);
-                }else{
+                }  
 
-                        //add object code to text record
-                    if(isMnemonic(readOpcode)){
-                        deci = (int)strtoul(readMnemonicVal,NULL,16);
-                        sprintf(stringConvert,"%02x",deci);
-                        strcat(instructionLines,stringConvert);  
-                        sprintf(stringConvert,"%04x",val);
-                        strcat(instructionLines,stringConvert);
-                    }else if(!strcmp(readOpcode,"BYTE")){
-                        strcat(instructionLines,check);
-                    }else if(!strcmp(readOpcode,"WORD")){
-                        sprintf(stringConvert,"%06x",deci);
-                        strcat(instructionLines,stringConvert);
-                    }else if(!strcmp(readOpcode,"RSUB")){
-                        sprintf(stringConvert,"%06x",val);
-                        strcat(instructionLines,readMnemonicVal);
-                        strcat(instructionLines,"0000");
-                    }else if(!strcmp(readOperand,"BUFFER,X")){
-                        val = symbolLocation(SYMTAB,readOperand,sCount);
-                        sprintf(stringConvert,"%x",val);
-                        stringConvert[0] = stringConvert[0] + 8;
-                        strcat(instructionLines,readMnemonicVal);
-                        strcat(instructionLines,stringConvert);
-                    }else if(!strcmp(readOpcode,"RESW") || !strcmp(readOpcode,"RESB")){
-                        strcat(instructionLines,"      ");
-                    }
+                if(!strcmp(opcode,"END")){
+                    sprintf(stringConvert,"%02x",(lineSize/2));
+                    strcat(frontobjectLine,stringConvert);
+                    strcat(frontobjectLine,instructionLines);
+                    printf("%s\n",frontobjectLine);
+                    fprintf(Ofw, "%s\n",frontobjectLine);
+                    writeListingLine(Lfw,readLineAddress,readLabel,readOpcode,stringConvert,readMnemonicVal,val);
 
-                    instruction++;
-                    lineSize += 0x06;
-                    printf("%x\n");
+                    fprintf(Ofw,"E");
+                    fprintf(Ofw,"%06x\n",startAdd);
+
+                    printf("E");
+                    printf("%06x\n",startAdd);
+
+                    break;
+                }
+
+                                    //if object code will not fit into current text record
+                
                     
-                    }
-                
-
-                
+               
                     //write listing line
                 writeListingLine(Lfw,readLineAddress,readLabel,readOpcode,stringConvert,readMnemonicVal,val);
                 
