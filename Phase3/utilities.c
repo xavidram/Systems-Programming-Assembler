@@ -229,3 +229,16 @@ void fprintIntArray(int *Array,int size,FILE *fw){
     }
 }
 
+void writeListingLine(FILE * Lfw,char* LOCCTR, char* label, char* opcode, char* operand, char* mnemonicVal, unsigned operandVal){
+    
+    fprintf(Lfw,"%s\t",LOCCTR);
+    fprintf(Lfw,"%s\t",label);
+    fprintf(Lfw,"%s\t",opcode);
+    fprintf(Lfw,"%s\t",operand);
+    if(strcmp(opcode,"START")){
+        fprintf(Lfw,"%02x",(int)strtoul(mnemonicVal,NULL,16));
+        fprintf(Lfw,"%04x\n",operandVal);
+    }else{
+        fprintf(Lfw,"\n");
+    }
+}
