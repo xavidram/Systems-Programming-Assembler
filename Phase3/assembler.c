@@ -119,7 +119,6 @@ void parseFile(char * fileName){
         //parse line
         trimNewLine(line);
         fprintf(fw,"%s\n",line);
-        printf("%s\n",line);
 
         if(line[0] == '.'){ //this is a comment line;
             //
@@ -181,8 +180,6 @@ void parseFile(char * fileName){
             }
             else if(!strcmp(opcode,"BYTE")){
                 int len = length(operand); int X = 2; int SIZE = 0;
-
-                printf("%d\n",(operand[0] == 'C') && (operand[1] == '\''));
 
                 if( (operand[0] == 'C') && (operand[1] == '\'')){
                     while(X < len - 1){
@@ -267,7 +264,7 @@ void parseFile(char * fileName){
         if(Ifr == NULL){
             printf("Can't open the input file."); exit(1);
         }
-    Ofw = fopen("program.obj","w");
+    Ofw = fopen("program.txt","w");
         if(Ofw == NULL){
             printf("Can't open the OBJECT File"); exit(1);
         }
@@ -349,6 +346,19 @@ void parseFile(char * fileName){
             trimNewLine(readMnemonicVal);trimNewLine(readLineAddress); trimNewLine(readOperand);
             trimNewLine(readErrors);trimNewLine(readLabel);trimNewLine(readOpcode);
 
+            //parse errors
+            if(!isdigit(readErrors[0])){
+            	errorCount = 0;
+            }else{
+            	int c; memset(errors,0,sizeof(errors)); 
+	            char *tok, *saved;
+				for (tok = strtok_r(readErrors, "%", &saved), c = 0; tok; tok = strtok_r(NULL, "%", &saved),c++)
+				{
+				    errors[c] = (int)strtoul(tok,NULL,10);
+				}
+				//printIntArray(errors,c);
+				errorCount = c;
+            }
             
 
              //if it is the first line and opcode is start
@@ -474,15 +484,14 @@ void parseFile(char * fileName){
                     sprintf(stringConvert,"%02x",(lineSize/2));
                     strcat(frontobjectLine,stringConvert);
                     strcat(frontobjectLine,instructionLines);
-                    printf("%s\n",frontobjectLine);
                     fprintf(Ofw, "%s\n",frontobjectLine);
-                    writeListingLine(Lfw,readLineAddress,readLabel,readOpcode,stringConvert,readMnemonicVal,val);
+                    
+                    fprintf(Lfw,"%*s",16," ");
+			        fprintf(Lfw,"%s\t",opcode);
+			        fprintf(Lfw,"%s\t\n",operand);
 
                     fprintf(Ofw,"E");
                     fprintf(Ofw,"%06x\n",startAdd);
-
-                    printf("E");
-                    printf("%06x\n",startAdd);
 
                     break;
                 }
@@ -492,11 +501,12 @@ void parseFile(char * fileName){
                     
                
                     //write listing line
-                writeListingLine(Lfw,readLineAddress,readLabel,readOpcode,stringConvert,readMnemonicVal,val);
                 
+                writeListingLine(Lfw,readLineAddress,readLabel,readOpcode,readOperand,readMnemonicVal,val);
             }            
 
-        }
+        }else
+        	fprintf(Lfw,"%s\n",line);
 
 
 
